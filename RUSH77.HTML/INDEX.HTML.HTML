@@ -1,0 +1,342 @@
+<!DOCTYPE html>
+<html lang="en">
+<head>
+<meta charset="UTF-8">
+<meta name="viewport" content="width=device-width, initial-scale=1.0">
+<title>RUSH 777</title>
+
+<style>
+*{
+margin:0;
+padding:0;
+box-sizing:border-box;
+font-family:Arial,sans-serif;
+}
+
+body{
+background:#090909;
+color:white;
+text-align:center;
+overflow:hidden;
+}
+
+h1{
+margin-top:10px;
+color:gold;
+}
+
+#scoreboard{
+display:flex;
+justify-content:center;
+gap:20px;
+margin:10px;
+font-size:18px;
+}
+
+canvas{
+background:#111;
+border:2px solid gold;
+max-width:100%;
+touch-action:none;
+}
+
+#controls{
+margin-top:10px;
+}
+
+button{
+padding:15px 25px;
+font-size:18px;
+margin:5px;
+border:none;
+border-radius:10px;
+background:gold;
+font-weight:bold;
+}
+
+#gameOver{
+position:fixed;
+top:0;
+left:0;
+width:100%;
+height:100%;
+background:rgba(0,0,0,.9);
+display:none;
+justify-content:center;
+align-items:center;
+flex-direction:column;
+}
+
+#gameOver h2{
+font-size:40px;
+margin-bottom:15px;
+color:gold;
+}
+
+#gameOver button{
+font-size:22px;
+}
+</style>
+</head>
+<body>
+
+<h1>RUSH 777</h1>
+
+<div id="scoreboard">
+<div>Score: <span id="score">0</span></div>
+<div>Best: <span id="best">0</span></div>
+<div>Luck: x<span id="multiplier">1</span></div>
+</div>
+
+<canvas id="game" width="320" height="550"></canvas>
+
+<div id="controls">
+<button onclick="moveLeft()">⬅️</button>
+<button onclick="moveRight()">➡️</button>
+</div>
+
+<div id="gameOver">
+<h2>GAME OVER</h2>
+<p id="finalScore"></p>
+<br>
+<button onclick="restart()">Play Again</button>
+</div>
+
+<script>
+const canvas = document.getElementById("game");
+const ctx = canvas.getContext("2d");
+
+const lanes = [80,160,240];
+
+let player;
+let enemies;
+let luckyDrops;
+let score;
+let multiplier;
+let gameRunning;
+
+let bestScore =
+parseInt(localStorage.getItem("777best")) || 0;
+
+document.getElementById("best").textContent =
+bestScore;
+
+function startGame(){
+
+player = {
+lane:1,
+y:460,
+w:40,
+h:60
+};
+
+enemies = [];
+luckyDrops = [];
+
+score = 0;
+multiplier = 1;
+gameRunning = true;
+
+document.getElementById("gameOver").style.display =
+"none";
+}
+
+function spawnEnemy(){
+enemies.push({
+lane:Math.floor(Math.random()*3),
+y:-60
+});
+}
+
+function spawnLucky(){
+luckyDrops.push({
+lane:Math.floor(Math.random()*3),
+y:-40
+});
+}
+
+setInterval(()=>{
+if(gameRunning) spawnEnemy();
+},1000);
+
+setInterval(()=>{
+if(gameRunning) spawnLucky();
+},2500);
+
+function moveLeft(){
+if(player.lane>0) player.lane--;
+}
+
+function moveRight(){
+if(player.lane<2) player.lane++;
+}
+
+document.addEventListener("keydown",(e)=>{
+if(e.key==="ArrowLeft") moveLeft();
+if(e.key==="ArrowRight") moveRight();
+});
+
+let touchStartX=0;
+
+canvas.addEventListener("touchstart",(e)=>{
+touchStartX=e.touches[0].clientX;
+});
+
+canvas.addEventListener("touchend",(e)=>{
+let touchEndX=e.changedTouches[0].clientX;
+
+if(touchEndX-touchStartX>30){
+moveRight();
+}
+
+if(touchStartX-touchEndX>30){
+moveLeft();
+}
+});
+
+function drawRoad(){
+
+ctx.fillStyle="#1a1a1a";
+ctx.fillRect(40,0,240,550);
+
+ctx.strokeStyle="#ffffff55";
+
+for(let i=0;i<550;i+=40){
+ctx.beginPath();
+ctx.moveTo(160,i);
+ctx.lineTo(160,i+20);
+ctx.stroke();
+}
+}
+
+function drawPlayer(){
+
+ctx.fillStyle="red";
+
+ctx.fillRect(
+lanes[player.lane]-20,
+player.y,
+player.w,
+player.h
+);
+}
+
+function drawEnemies(){
+
+ctx.fillStyle="deepskyblue";
+
+enemies.forEach(enemy=>{
+ctx.fillRect(
+lanes[enemy.lane]-20,
+enemy.y,
+40,
+60
+);
+});
+}
+
+function drawLucky(){
+
+ctx.fillStyle="gold";
+ctx.font="bold 24px Arial";
+
+luckyDrops.forEach(drop=>{
+ctx.fillText(
+"777",
+lanes[drop.lane]-20,
+drop.y
+);
+});
+}
+
+function gameOver(){
+
+gameRunning=false;
+
+if(score>bestScore){
+
+bestScore=score;
+
+localStorage.setItem(
+"777best",
+bestScore
+);
+}
+
+document.getElementById("best").textContent =
+bestScore;
+
+document.getElementById("finalScore").textContent =
+"Score: "+Math.floor(score);
+
+document.getElementById("gameOver").style.display =
+"flex";
+}
+
+function restart(){
+startGame();
+}
+
+function update(){
+
+ctx.clearRect(0,0,canvas.width,canvas.height);
+
+drawRoad();
+
+if(gameRunning){
+
+score += 0.1 * multiplier;
+
+enemies.forEach(enemy=>{
+
+enemy.y += 5;
+if(
+enemy.lane===player.lane &&
+enemy.y > player.y-50 &&
+enemy.y < player.y+50
+){
+gameOver();
+}
+});
+
+luckyDrops.forEach(drop=>{
+
+drop.y += 4;
+
+if(
+drop.lane===player.lane &&
+drop.y > player.y-40 &&
+drop.y < player.y+40
+){
+
+score += 777;
+
+multiplier++;
+
+drop.y = 9999;
+}
+});
+
+enemies = enemies.filter(e=>e.y<650);
+luckyDrops = luckyDrops.filter(d=>d.y<650);
+}
+
+drawPlayer();
+drawEnemies();
+drawLucky();
+
+document.getElementById("score").textContent =
+Math.floor(score);
+
+document.getElementById("multiplier").textContent =
+multiplier;
+
+requestAnimationFrame(update);
+}
+
+startGame();
+update();
+</script>
+
+</body>
+</html>
